@@ -97,3 +97,10 @@ tokio_taskdump = ["pumpkin-world/tokio_taskdump"]
 
 [lints]
 workspace = true
+
+[profile.release]
+opt-level = 3       # O3 优化，最高优化
+debug = false       # 不生成调试信息，减小体积
+lto = true          # 启用 LTO（链接时优化），进一步提高性能
+strip = true
+codegen-units = 1   # 单个 codegen 单元，配合 LTO 效果最佳

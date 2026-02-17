@@ -5,7 +5,7 @@
 #[cfg(target_os = "wasi")]
 compile_error!("Compiling for WASI targets is not supported!");
 
-use pumpkin_data::packet::CURRENT_BEDROCK_MC_PROTOCOL;
+use pumpkin_world::CURRENT_BEDROCK_MC_PROTOCOL;
 use std::{
     io::{self},
     sync::{Arc, LazyLock, OnceLock},
