@@ -61,6 +61,10 @@ pub mod open_connection;
 pub mod unconnected;
 use crate::{entity::player::Player, net::DisconnectReason, server::Server};
 
+use crate::world::World;
+use pumpkin_util::math::position::BlockPos; // 引入 BlockPos
+use pumpkin_util::math::vector3::Vector3;
+
 pub struct BedrockClient {
     socket: Arc<UdpSocket>,
     /// The client's IP address.
@@ -513,6 +517,89 @@ impl BedrockClient {
     ) {
         let reader = &mut &packet.payload[..];
         match packet.id {
+            44 => {
+                // 44 Game transaction packet minimal parsing
+                if reader.is_empty() {
+                    return;
+                }
+
+                let action_type = reader[0]; // 0=UseItem, 1=UseItemOnBlock, 2=UseItemOnEntity, 3=Release
+
+                match action_type {
+                    0 => {
+                        // UseItem: eat food / use
+                        // Heal to full
+                        player
+                            .living_entity
+                            .health
+                            .store(player.living_entity.health.load());
+                        player
+                            .hunger_manager
+                            .level
+                            .store(player.hunger_manager.level.load());
+
+                        // 消耗当前物品
+                        let mut carried = player.carried_item.lock().await;
+                        if let Some(stack) = carried.as_mut() {
+                            if stack.item_count > 0 {
+                                stack.item_count -= 1;
+                            }
+                        }
+                    }
+
+                    1 => {
+                        // UseItemOnBlock: break / place block
+                        if reader.len() >= 13 {
+                            let x = i32::from_le_bytes(reader[1..5].try_into().unwrap());
+                            let y = i32::from_le_bytes(reader[5..9].try_into().unwrap());
+                            let z = i32::from_le_bytes(reader[9..13].try_into().unwrap());
+
+                            let world: Arc<World> = player.world();
+                            // 立即 break block: set block to air
+                            // *注意* World 提供 set_block 方法 via world.level.edit (公开接口)
+                            let pos = BlockPos(Vector3::new(x, y, z));
+                            world
+                                .level
+                                .set_block_state(
+                                    &pos, 0, // 0 = air
+                                )
+                                .await;
+                        }
+                    }
+
+                    2 => {
+                        // UseItemOnEntity: attack entity
+                        if reader.len() >= 9 {
+                            let entity_id = u64::from_le_bytes(reader[1..9].try_into().unwrap());
+
+                            // 遍历 world entities
+                            let world: Arc<World> = player.world();
+                            for ent in world.entities.load_full().iter() {
+                                if ent.get_entity().entity_id as u64 == entity_id {
+                                    if let Some(living) = ent.get_living_entity() {
+                                        living.health.store(0.0);
+                                    }
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                    3 => {
+                        // ReleaseItem: 放开动作
+                        // 直接消耗当前手持物品
+                        let mut carried = player.carried_item.lock().await;
+                        if let Some(stack) = carried.as_mut() {
+                            if stack.item_count > 0 {
+                                stack.item_count -= 1;
+                            }
+                        }
+                    }
+
+                    _ => {}
+                }
+            }
+
             SPlayerAuthInput::PACKET_ID => {
                 if let Ok(input_packet) = SPlayerAuthInput::read(reader) {
                     self.player_pos_update(player, input_packet).await;
