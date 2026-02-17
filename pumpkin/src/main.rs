@@ -5,7 +5,7 @@
 #[cfg(target_os = "wasi")]
 compile_error!("Compiling for WASI targets is not supported!");
 
-use pumpkin_data::packet::CURRENT_MC_PROTOCOL;
+use pumpkin_data::packet::CURRENT_BEDROCK_MC_PROTOCOL;
 use std::{
     io::{self},
     sync::{Arc, LazyLock, OnceLock},
@@ -75,10 +75,10 @@ async fn main() {
             TextComponent::text("Pumpkin")
                 .color_named(NamedColor::Gold)
                 .to_pretty_console(),
-            TextComponent::text(CARGO_PKG_VERSION.to_string())
+            TextComponent::text("v0.1.0-tong+1.21.132".to_string())
                 .color_named(NamedColor::Green)
                 .to_pretty_console(),
-            TextComponent::text(CURRENT_MC_PROTOCOL.to_string())
+            TextComponent::text(CURRENT_BEDROCK_MC_PROTOCOL.to_string())
                 .color_named(NamedColor::DarkBlue)
                 .to_pretty_console()
         ))
@@ -96,7 +96,6 @@ async fn main() {
             "Release"
         }
     );
-    print_support_links_and_warning();
 
     tokio::spawn(async {
         setup_sighandler()
@@ -154,29 +153,6 @@ async fn main() {
         "{}",
         TextComponent::text("The server has stopped.")
             .color_named(NamedColor::Red)
-            .to_pretty_console()
-    );
-}
-fn print_support_links_and_warning() {
-    warn!(
-        "{}",
-        TextComponent::text("Pumpkin is currently under heavy development!")
-            .color_named(NamedColor::DarkRed)
-            .to_pretty_console(),
-    );
-    info!(
-        "Report issues on {}",
-        TextComponent::text("https://github.com/Pumpkin-MC/Pumpkin/issues")
-            .color_named(NamedColor::DarkAqua)
-            .to_pretty_console()
-    );
-    info!(
-        "Join our {} for community support: {}",
-        TextComponent::text("Discord")
-            .color_named(NamedColor::DarkBlue)
-            .to_pretty_console(),
-        TextComponent::text("https://discord.gg/pumpkinmc")
-            .color_named(NamedColor::Aqua)
             .to_pretty_console()
     );
 }
