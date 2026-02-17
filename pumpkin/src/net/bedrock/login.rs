@@ -1,4 +1,5 @@
 use crate::net::authentication::MOJANG_BEDROCK_PUBLIC_KEY_BASE64;
+use crate::net::offline_uuid;
 use crate::{
     net::{ClientPlatform, DisconnectReason, GameProfile, bedrock::BedrockClient},
     server::Server,
@@ -84,7 +85,7 @@ impl BedrockClient {
         let player_data = verify_chain(&chain_vec, MOJANG_BEDROCK_PUBLIC_KEY_BASE64)?;
 
         let profile = GameProfile {
-            id: Uuid::parse_str(&player_data.uuid).map_err(|_| LoginError::InvalidUuid)?,
+            id: offline_uuid(&player_data.display_name).map_err(|_| LoginError::InvalidUuid)?,
             name: player_data.display_name,
             properties: Vec::new(),
             profile_actions: None,
